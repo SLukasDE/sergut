@@ -44,7 +44,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
-
+#include <map>
 
 namespace sergut {
 
@@ -112,7 +112,7 @@ public:
     auto memberIt = currentElement->FindMember(data.name);
     if(memberIt == currentElement->MemberEnd() || memberIt->value.IsNull()) {
       if(data.mandatory) {
-        throw ParsingException("Missing mandatory member");
+        throw ParsingException(std::string("Missing mandatory member \"") + data.name + "\"");
       }
       return *this;
     }
@@ -132,7 +132,7 @@ public:
 private:
   uint64_t getMatchingNumericType(const unsigned long long&) const {
     if(!_currentElement->IsUint64()) {
-      throw new ParsingException("Expecting unsigned numeric type, but got something else");
+      throw ParsingException("Expecting unsigned numeric type, but got something else");
     }
     return _currentElement->GetUint64();
   }
@@ -143,7 +143,7 @@ private:
 
   int64_t getMatchingNumericType(const signed long long&) const {
     if(!_currentElement->IsInt64()) {
-      throw new ParsingException("Expecting numeric type, but got something else");
+      throw ParsingException("Expecting numeric type, but got something else");
     }
     return _currentElement->GetInt64();
   }
@@ -153,10 +153,31 @@ private:
   int64_t getMatchingNumericType(const signed      char&) const { return getMatchingNumericType(static_cast<signed long long>(0)); }
 
   double getMatchingNumericType(const double&) const {
-    if(!_currentElement->IsDouble()) {
-      throw new ParsingException("Expecting double type, but got something else");
+    double rv;
+
+    if(_currentElement->IsDouble()) {
+        rv = _currentElement->GetDouble();
     }
-    return _currentElement->GetDouble();
+    else if(_currentElement->IsFloat()) {
+        rv = _currentElement->GetFloat();
+    }
+    else if(_currentElement->IsInt64()) {
+        rv = _currentElement->GetInt64();
+    }
+    else if(_currentElement->IsInt()) {
+        rv = _currentElement->GetInt();
+    }
+    else if(_currentElement->IsUint64()) {
+        rv = _currentElement->GetUint64();
+    }
+    else if(_currentElement->IsUint()) {
+        rv = _currentElement->GetUint();
+    }
+    else {
+      throw ParsingException("Expecting double type, but got something else");
+    }
+
+    return rv;
   }
   double getMatchingNumericType(const float&) const { return getMatchingNumericType(static_cast<double>(0)); }
 
@@ -165,7 +186,7 @@ private:
   deserializeValue(T& data) {
     auto intValue = getMatchingNumericType(T());
     if(typeid(T) != typeid(intValue)) {
-      if(intValue < std::numeric_limits<T>::min() || intValue > std::numeric_limits<T>::max()) {
+      if(intValue < std::numeric_limits<T>::lowest() || intValue > std::numeric_limits<T>::max()) {
         throw ParsingException("Number is not within the value range of datatype");
       }
     }
@@ -230,6 +251,37 @@ private:
       currentElement->Erase(currentElement->Begin());
     }
     _currentElement = currentElement;
+  }
+
+
+  template<typename Key, typename CDT>
+  void deserializeMap(std::map<Key, CDT>& data)
+  {
+    if(!_currentElement->IsObject()) {
+      throw ParsingException("Expecting Object, but got something else");
+    }
+
+    const auto currentElement = _currentElement;
+    for(auto& currentMember : currentElement->GetObject()) {
+      typename std::map<Key, CDT>::value_type entry(std::string(currentMember.name.GetString(),
+              currentMember.name.GetStringLength()), {});
+      _currentElement = &currentMember.value;
+      deserializeValue(entry.second);
+      data.emplace(entry);
+    }
+    _currentElement = currentElement;
+  }
+
+  template<typename CDT>
+  void deserializeValue(std::map<std::string, CDT>& data)
+  {
+     deserializeMap(data);
+  }
+
+  template<typename CDT>
+  void deserializeValue(std::map<const std::string, CDT>& data)
+  {
+     deserializeMap(data);
   }
 
   template<typename CDT>

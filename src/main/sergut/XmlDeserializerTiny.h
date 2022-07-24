@@ -23,7 +23,7 @@
 
 #include "sergut/detail/XmlDeserializerDomBase.h"
 
-#include <tinyxml.h>
+#include <tinyxml/tinyxml.h>
 
 /*
  * <foo>

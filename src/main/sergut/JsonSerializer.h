@@ -41,7 +41,7 @@ public:
     None = 0,
     BoolAsInt = 1  // set by default for backward-compatibility
   };
-  JsonSerializer(const Flags flags = Flags::BoolAsInt);
+  JsonSerializer(const Flags flags = Flags::None);
   JsonSerializer(const JsonSerializer& ref);
   ~JsonSerializer();
 

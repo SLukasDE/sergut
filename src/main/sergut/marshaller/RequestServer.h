@@ -31,7 +31,6 @@
 #include <functional>
 #include <type_traits>
 
-#if 0 // Not implemented, yet
 namespace sergut {
 namespace marshaller {
 
@@ -98,6 +97,7 @@ public:
   };
 
   RequestServer() { }
+  virtual ~RequestServer() noexcept { }
 
   template<typename Cls, typename RetT, typename ...FunArgs, typename ...Converters>
   void add(const std::string& funName, const Cls* cls, const std::string& returnWrapperName, RetT(Cls::*fun)(FunArgs ...funArgs) const, Converters&& ...converters)
@@ -106,10 +106,10 @@ public:
     std::function<std::string(const Request&)> foo = (
           [=](const Request& request) {
              UrlDeserializer urlDeserializer(request.getParameters());
-             RetT retVal = (cls->*fun)((converters.template convert<typename std::decay<FunArgs>::type>(request, urlDeserializer))...);
+//             RetT retVal = (cls->*fun)((converters.template convert<typename std::decay<FunArgs>::type>(request, urlDeserializer))...);
              if(request.getOutputDataContentType() == "application/xml") {
                sergut::XmlSerializer ser;
-               ser.serializeData(returnWrapperName.c_str(), retVal);
+//               ser.serializeData(returnWrapperName.c_str(), retVal);
                return ser.str();
              }
              throw sergut::marshaller::UnsupportedFormatException("No support for output format: " + request.getOutputDataContentType().toString());
@@ -139,4 +139,3 @@ private:
 
 }
 }
-#endif
